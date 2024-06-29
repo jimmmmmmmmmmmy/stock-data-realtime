@@ -50,7 +50,7 @@ print(data)
 data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds, n_bars=10)
 
 # Get daily data for a stock:
-data = tv.get_hist("AAPL!A", "NASDAQ", interval=Interval.in_daily, n_bars=1000)
+data = tv.get_hist("AAPL", "NASDAQ", interval=Interval.in_daily, n_bars=1000)
 
 # Get data with extended trading hours
 data = tv.get_hist("MSFT", "NASDAQ", interval=Interval.in_1_hour, n_bars=500, extended_session=True)
