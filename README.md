@@ -14,6 +14,13 @@ Stock Data Realtime is a Python script that allows you to fetch real-time and hi
 - Optional authentication for extended data access
 - Pandas DataFrame output for easy data manipulation and analysis
 
+## Required Libraries
+This script relies on the following Python libraries that are not included in the base Python installation:
+
+pandas: For data manipulation and analysis
+websocket-client: For WebSocket connections
+requests: For making HTTP requests
+
 ## Usage
 
 The main script is `stock_data.py`. Here are some examples of how to use it:
