@@ -27,11 +27,14 @@ from stock_data import TvDatafeed, Interval
 tv = TvDatafeed()
 
 # Get historical data
-data = tv.get_hist("AAPL", "NASDAQ", interval=Interval.in_daily, n_bars=100)
+data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
+                           n_bars=10)
 print(data)
 
 # Returns: ["Date", "Time", "Open", "High", "Low", "Close", "Volume"]
 ```
+
+<img width="637" alt="Screenshot 2024-06-29 at 10 02 04 AM" src="https://github.com/jimmmmmmmmmmmy/stock-data-realtime/assets/143036559/af642f31-de80-4273-915f-479c3496318d">
 
 ### Fetching Data with Different Parameters
 
