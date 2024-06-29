@@ -8,14 +8,14 @@ Stock Data Realtime is a Python script that allows you to fetch real-time and hi
 
 ## Features
 
-- Fetch real-time and historical data for stocks, futures, forex, and more
+- Fetch near real-time and historical market data
 - Support for multiple timeframes (from 5 seconds to monthly)
 - Ability to search for symbols across different exchanges
-- Optional authentication for extended data access
+- Optional authentication for their paid data features
 - Pandas DataFrame output for easy data manipulation and analysis
 
 ## Required Libraries
-This script relies on the following Python libraries that are not included in the base Python installation:
+This script relies on the following Python libraries
 
 - pandas: For data manipulation and analysis
 - websocket-client: For WebSocket connections
