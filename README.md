@@ -29,6 +29,8 @@ tv = TvDatafeed()
 # Get historical data
 data = tv.get_hist("AAPL", "NASDAQ", interval=Interval.in_daily, n_bars=100)
 print(data)
+
+# Returns: ["Date", "Time", "Open", "High", "Low", "Close", "Volume"]
 ```
 
 ### Fetching Data with Different Parameters
@@ -57,7 +59,7 @@ tv = TvDatafeed(
 data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
                            n_bars=10)
 
-print(data)
+# print(data) or display(data)
 ```
 
 #### How to obtain your sessionid and sessionid_sign
