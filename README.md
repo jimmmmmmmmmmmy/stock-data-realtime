@@ -77,6 +77,27 @@ data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
 
 https://github.com/jimmmmmmmmmmmy/stock-data-realtime/assets/143036559/29ccb8e3-e3bf-4018-ad1f-0440540482c9
 
+
+#### Token Management
+
+The script manages authentication tokens automatically, saving them to a file (`tv_token.json`) and reusing them when possible. You can inspect this file to see the current token and its expiry date.
+
+The `tv_token.json` file contains two key items:
+1. `token`: The current authentication token.
+2. `expiry`: The expiration date and time of the token.
+
+Example structure of `tv_token.json`:
+```json
+{
+    "token": "ABCDEFGHUIDFH(*#HR(OHN#IUOHF*&(#F@HIULFHSELIUFHDFJIUYH#*(O&FYGHILEDFufghsdiufg2o387f...",
+    "expiry": "2024-07-27T22:45:36.629250"
+}
+```
+
+By storing the token in a json file, we're able to reduce the number of authentication requests. The script will automatically refresh the token when it expires.
+
+#
+
 # Debugging:
 
 The TvDatafeed class includes several debugging features to help you troubleshoot issues and gain insights into the data retrieval process:
@@ -121,10 +142,4 @@ except Exception as e:
 ```
 
 This structure allows you to catch and handle any exceptions that might occur during the data retrieval process.
-
-### Token Management
-
-The script manages authentication tokens automatically, saving them to a file (`tv_token.json`) and reusing them when possible. You can inspect this file to see the current token and its expiry date.
-
-By leveraging these debugging features, you can gain deeper insights into the workings of the TvDatafeed class and more easily diagnose and resolve any issues that may arise.
 
