@@ -77,4 +77,56 @@ data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
 
 https://github.com/jimmmmmmmmmmmy/stock-data-realtime/assets/143036559/29ccb8e3-e3bf-4018-ad1f-0440540482c9
 
+# Debugging:
+
+The TvDatafeed class includes several debugging features to help you troubleshoot issues and gain insights into the data retrieval process:
+
+### Logging
+
+The script uses Python's built-in `logging` module to provide detailed information about its operations. By default, logging is set to the DEBUG level when the script is run directly. This gives you visibility into:
+
+- Authentication processes
+- WebSocket connection attempts
+- Data retrieval progress
+- Any errors or warnings that occur during execution
+
+You can adjust the logging level as needed in your own scripts:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)  # Or INFO, WARNING, ERROR, etc.
+```
+
+### WebSocket Debugging
+
+The TvDatafeed class includes a `ws_debug` attribute that you can set to `True` to print out all WebSocket messages sent to TradingView:
+
+```python
+tv = TvDatafeed(sessionid="your_session_id", sessionid_sign="your_session_id_sign")
+tv.ws_debug = True
+```
+
+This can be particularly useful when you need to inspect the raw communication between the script and TradingView's servers.
+
+### Error Handling
+
+The script includes robust error handling and logging. If an error occurs during data retrieval, it will be caught and logged. For example:
+
+```python
+try:
+    data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds, n_bars=10)
+    display(data)
+except Exception as e:
+    logger.error(f"An error occurred: {e}")
+```
+
+This structure allows you to catch and handle any exceptions that might occur during the data retrieval process.
+
+### Token Management
+
+The script manages authentication tokens automatically, saving them to a file (`tv_token.json`) and reusing them when possible. You can inspect this file to see the current token and its expiry date.
+
+By leveraging these debugging features, you can gain deeper insights into the workings of the TvDatafeed class and more easily diagnose and resolve any issues that may arise.
+
+[... rest of the README remains unchanged ...]
 
