@@ -128,5 +128,3 @@ The script manages authentication tokens automatically, saving them to a file (`
 
 By leveraging these debugging features, you can gain deeper insights into the workings of the TvDatafeed class and more easily diagnose and resolve any issues that may arise.
 
-[... rest of the README remains unchanged ...]
-
