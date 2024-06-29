@@ -100,38 +100,36 @@ By storing the token in a json file, we're able to reduce the number of authenti
 
 # Debugging:
 
-The TvDatafeed class includes several debugging features to help you troubleshoot issues and gain insights into the data retrieval process:
+### Python's built-in 'Logging'
 
-### Logging
-
-The script uses Python's built-in `logging` module to provide detailed information about its operations. By default, logging is set to the DEBUG level when the script is run directly. This gives you visibility into:
+The script uses Python's `logging` module. By default, logging is set to the DEBUG level when the script is run directly. This should provide debugging info on:
 
 - Authentication processes
 - WebSocket connection attempts
 - Data retrieval progress
 - Any errors or warnings that occur during execution
 
-You can adjust the logging level as needed in your own scripts:
+The logging level can be adjusted in this part of the script:
 
 ```python
 import logging
-logging.basicConfig(level=logging.DEBUG)  # Or INFO, WARNING, ERROR, etc.
+logging.basicConfig(level=logging.DEBUG)  # Or INFO, WARNING, ERROR, CRITICAL
 ```
 
 ### WebSocket Debugging
 
-The TvDatafeed class includes a `ws_debug` attribute that you can set to `True` to print out all WebSocket messages sent to TradingView:
+The TvDatafeed class includes a `ws_debug` attribute. By default is it set to false, but can be set to `True` to print out all WebSocket messages sent to TradingView:
 
 ```python
 tv = TvDatafeed(sessionid="your_session_id", sessionid_sign="your_session_id_sign")
 tv.ws_debug = True
 ```
 
-This can be particularly useful when you need to inspect the raw communication between the script and TradingView's servers.
+This should be used to inspect raw communication between the script and TradingView's servers.
 
 ### Error Handling
 
-The script includes robust error handling and logging. If an error occurs during data retrieval, it will be caught and logged. For example:
+If an error occurs during data retrieval, it can be caught and logged this way:
 
 ```python
 try:
@@ -140,6 +138,4 @@ try:
 except Exception as e:
     logger.error(f"An error occurred: {e}")
 ```
-
-This structure allows you to catch and handle any exceptions that might occur during the data retrieval process.
 
