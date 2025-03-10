@@ -6,7 +6,6 @@ import random
 import re
 import string
 import os
-import time
 from typing import Optional
 
 import pandas as pd
@@ -15,8 +14,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 class Interval(enum.Enum):
-    in_5_seconds = "5S"
     in_1_minute = "1"
     in_3_minute = "3"
     in_5_minute = "5"
@@ -31,6 +30,7 @@ class Interval(enum.Enum):
     in_weekly = "1W"
     in_monthly = "1M"
 
+
 class TvDatafeed:
     __sign_in_url = "https://www.tradingview.com/accounts/signin/"
     __search_url = "https://symbol-search.tradingview.com/symbol_search/?text={}&hl=1&exchange={}&lang=en&type=&domain=production"
@@ -39,9 +39,10 @@ class TvDatafeed:
     __ws_timeout = 5
     __token_file = "tv_token.json"
 
-    def __init__(self, sessionid: Optional[str] = None, sessionid_sign: Optional[str] = None) -> None:
-        self.sessionid = sessionid
-        self.sessionid_sign = sessionid_sign
+    def __init__(self, username: Optional[str] = None,
+                 password: Optional[str] = None) -> None:
+        self.username = username
+        self.password = password
         self.ws_debug = False
         self.token = self.__load_token()
         if not self.token:
@@ -51,35 +52,46 @@ class TvDatafeed:
         self.chart_session = self.__generate_chart_session()
 
     def __auth(self):
-        if self.sessionid is None or self.sessionid_sign is None:
-            logger.warning("No session cookies provided. Using unauthorized access.")
+        if self.username is None or self.password is None:
+            logger.warning(
+                "No credentials provided. Using unauthorized access.")
             return "unauthorized_user_token"
 
-        headers = {
-            "Referer": "https://www.tradingview.com",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Cookie": f"sessionid={self.sessionid}; sessionid_sign={self.sessionid_sign}"
-        }
-
+        data = {"username": self.username, "password": self.password,
+                "remember": "on"}
         try:
-            response = requests.get("https://www.tradingview.com/chart/", headers=headers, allow_redirects=False)
-            if response.status_code == 302:
-                redirect_url = response.headers.get('Location')
-                response = requests.get(f"https://www.tradingview.com{redirect_url}", headers=headers)
+            response = requests.post(
+                url=self.__sign_in_url,
+                data=data,
+                headers=self.__signin_headers
+            )
             response.raise_for_status()
 
-            logger.debug(f"Authentication response status code: {response.status_code}")
+            logger.debug(
+                f"Authentication response status code: {response.status_code}")
             logger.debug(f"Authentication response headers: {response.headers}")
+            logger.debug(f"Authentication response content: {response.text}")
 
-            match = re.search(r'"auth_token":"([^"]+)"', response.text)
-            if match:
-                token = match.group(1)
-                self.__save_token(token)
-                logger.info("Authentication successful.")
-                return token
-            else:
-                logger.error("Failed to extract auth token from response.")
-                logger.debug(f"Response content: {response.text[:500]}...")  # Log first 500 characters
+            try:
+                json_response = response.json()
+                logger.debug(
+                    f"Parsed JSON response: {json.dumps(json_response, indent=2)}")
+
+                if 'user' in json_response and 'auth_token' in json_response[
+                    'user']:
+                    token = json_response['user']['auth_token']
+                    self.__save_token(token)
+                    logger.info("Authentication successful.")
+                    return token
+                else:
+                    logger.error(
+                        "Unexpected response format during authentication.")
+                    logger.error(
+                        f"Response does not contain expected 'user' and 'auth_token' fields.")
+                    return "unauthorized_user_token"
+            except json.JSONDecodeError:
+                logger.error("Failed to parse authentication response as JSON.")
+                logger.error(f"Raw response content: {response.text}")
                 return "unauthorized_user_token"
 
         except requests.exceptions.RequestException as e:
@@ -89,7 +101,8 @@ class TvDatafeed:
     def __save_token(self, token):
         data = {
             "token": token,
-            "expiry": (datetime.datetime.now() + datetime.timedelta(days=30)).isoformat()
+            "expiry": (datetime.datetime.now() + datetime.timedelta(
+                days=30)).isoformat()
         }
         with open(self.__token_file, 'w') as f:
             json.dump(data, f)
@@ -112,21 +125,12 @@ class TvDatafeed:
             return None
 
     def __create_connection(self):
-        for attempt in range(3):  # Try 3 times
-            try:
-                logging.debug(f"Creating websocket connection (attempt {attempt + 1})")
-                self.ws = create_connection(
-                    "wss://data.tradingview.com/socket.io/websocket",
-                    headers=self.__ws_headers,
-                    timeout=self.__ws_timeout,
-                )
-                logger.debug("WebSocket connection established successfully")
-                return
-            except Exception as e:
-                logger.error(f"Failed to establish WebSocket connection (attempt {attempt + 1}): {e}")
-                if attempt < 2:
-                    time.sleep(2)  # Wait for 2 seconds before retrying
-        raise ConnectionError("Failed to establish WebSocket connection after 3 attempts")
+        logging.debug("Creating websocket connection")
+        self.ws = create_connection(
+            "wss://data.tradingview.com/socket.io/websocket",
+            headers=self.__ws_headers,
+            timeout=self.__ws_timeout,
+        )
 
     @staticmethod
     def __filter_raw_message(text):
@@ -141,14 +145,16 @@ class TvDatafeed:
     def __generate_session():
         stringLength = 12
         letters = string.ascii_lowercase
-        random_string = "".join(random.choice(letters) for i in range(stringLength))
+        random_string = "".join(
+            random.choice(letters) for i in range(stringLength))
         return "qs_" + random_string
 
     @staticmethod
     def __generate_chart_session():
         stringLength = 12
         letters = string.ascii_lowercase
-        random_string = "".join(random.choice(letters) for i in range(stringLength))
+        random_string = "".join(
+            random.choice(letters) for i in range(stringLength))
         return "cs_" + random_string
 
     @staticmethod
@@ -171,11 +177,8 @@ class TvDatafeed:
     @staticmethod
     def __create_df(raw_data, symbol):
         try:
-            out = re.search('"s":\[(.+?)\}\]', raw_data)
-            if not out:
-                logger.error("No data found in the raw response")
-                return None
-            x = out.group(1).split(',{"')
+            out = re.search('"s":\[(.+?)\}\]', raw_data).group(1)
+            x = out.split(',{"')
             data = list()
             volume_data = True
 
@@ -189,6 +192,7 @@ class TvDatafeed:
                 row = [date, time]
 
                 for i in range(5, 10):
+                    # skip converting volume data if does not exist
                     if not volume_data and i == 9:
                         row.append(0.0)
                         continue
@@ -201,21 +205,18 @@ class TvDatafeed:
 
                 data.append(row)
 
-            if not data:
-                logger.error("No data points extracted from raw data")
-                return None
-
-            df = pd.DataFrame(
-                data, columns=["Date", "Time", "Open", "High", "Low", "Close", "Volume"]
+            data = pd.DataFrame(
+                data, columns=["Date", "Time", "Open", "High", "Low", "Close",
+                               "Volume"]
             )
-            df["Date"] = pd.to_datetime(df["Date"])
-            df["Time"] = pd.to_datetime(df["Time"], format='%H:%M:%S').dt.time
-            df.set_index("Date", inplace=True)
-            df.insert(0, "symbol", value=symbol)
-            return df
-        except Exception as e:
-            logger.error(f"Error creating DataFrame: {e}")
-            return None
+            data["Date"] = pd.to_datetime(data["Date"])
+            data["Time"] = pd.to_datetime(data["Time"],
+                                          format='%H:%M:%S').dt.time
+            data.set_index("Date", inplace=True)
+            data.insert(0, "symbol", value=symbol)
+            return data
+        except AttributeError:
+            logger.error("No data, please check the exchange and symbol")
 
     @staticmethod
     def __format_symbol(symbol, exchange, contract: int = None):
@@ -229,13 +230,13 @@ class TvDatafeed:
             raise ValueError("Not a valid contract")
 
     def get_hist(
-        self,
-        symbol: str,
-        exchange: str = "NSE",
-        interval: Interval = Interval.in_daily,
-        n_bars: int = 5000,
-        fut_contract: int = None,
-        extended_session: bool = False,
+            self,
+            symbol: str,
+            exchange: str = "NSE",
+            interval: Interval = Interval.in_daily,
+            n_bars: int = 5000,
+            fut_contract: int = None,
+            extended_session: bool = False,
     ) -> pd.DataFrame:
         if self.token == "unauthorized_user_token":
             logger.warning("Using unauthorized access, data may be limited")
@@ -245,7 +246,8 @@ class TvDatafeed:
             backadjustment = True
             symbol = symbol.replace("!A", "!")
 
-        symbol = self.__format_symbol(symbol=symbol, exchange=exchange, contract=fut_contract)
+        symbol = self.__format_symbol(symbol=symbol, exchange=exchange,
+                                      contract=fut_contract)
 
         interval = interval.value
 
@@ -258,8 +260,10 @@ class TvDatafeed:
             "quote_set_fields",
             [
                 self.session,
-                "ch", "chp", "current_session", "description", "local_description",
-                "language", "exchange", "fractional", "is_tradable", "lp", "lp_time",
+                "ch", "chp", "current_session", "description",
+                "local_description",
+                "language", "exchange", "fractional", "is_tradable", "lp",
+                "lp_time",
                 "minmov", "minmove2", "original_name", "pricescale", "pro_name",
                 "short_name", "type", "update_mode", "volume", "currency_code",
                 "rchp", "rtc",
@@ -267,7 +271,8 @@ class TvDatafeed:
         )
 
         self.__send_message(
-            "quote_add_symbols", [self.session, symbol, {"flags": ["force_permission"]}]
+            "quote_add_symbols",
+            [self.session, symbol, {"flags": ["force_permission"]}]
         )
         self.__send_message("quote_fast_symbols", [self.session, symbol])
 
@@ -294,28 +299,20 @@ class TvDatafeed:
         self.__send_message("switch_timezone", [self.chart_session, "exchange"])
 
         raw_data = ""
+
         logger.debug(f"Getting data for {symbol}...")
-        timeout = time.time() + 30  # 30 second timeout
         while True:
-            if time.time() > timeout:
-                raise TimeoutError("Timeout waiting for data")
             try:
                 result = self.ws.recv()
-                logger.debug(f"Received data: {result[:100]}...")  # Log first 100 characters
-                raw_data += result + "\n"
-                if "series_completed" in result:
-                    logger.debug("Series completed")
-                    break
+                raw_data = raw_data + result + "\n"
             except Exception as e:
-                logger.error(f"Error receiving data: {e}")
+                logger.error(e)
                 break
 
-        df = self.__create_df(raw_data, symbol)
-        if df is None or df.empty:
-            logger.warning("No data retrieved")
-        else:
-            logger.info(f"Successfully retrieved {len(df)} rows of data")
-        return df
+            if "series_completed" in result:
+                break
+
+        return self.__create_df(raw_data, symbol)
 
     def search_symbol(self, text: str, exchange: str = ""):
         url = self.__search_url.format(text, exchange)
@@ -323,25 +320,29 @@ class TvDatafeed:
         symbols_list = []
         try:
             resp = requests.get(url)
-            symbols_list = json.loads(resp.text.replace("</em>", "").replace("<em>", ""))
+            symbols_list = json.loads(
+                resp.text.replace("</em>", "").replace("<em>", ""))
         except Exception as e:
-            logger.error(f"Error searching for symbol: {e}")
+            logger.error(e)
 
         return symbols_list
 
+
 if __name__ == "__main__":
-  
+    import json
+
     logging.basicConfig(level=logging.DEBUG)
 
-    tv = TvDatafeed(
-        # See readme on how to grab sessionid and sessionid_sign
-        sessionid="__YOUR_SESSIONID__",
-        sessionid_sign="__YOUR_SESSIONID_SIGN__=",
-
-    )
+    # Load credentials from config file
     try:
-        data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
-                           n_bars=10)
-        print(data)
-    except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        username_tv = config["username"]
+        password_tv = config["password"]
+    except FileNotFoundError:
+        logger.error("config.json not found. Please create it with username & password")
+        exit(1)
+    tv = TvDatafeed(username=username_tv, password=password_tv)
+    data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_1_minute,
+                       n_bars=1)
+    print(data.iloc[-1]['Close'])
