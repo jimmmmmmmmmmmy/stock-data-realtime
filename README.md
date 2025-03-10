@@ -11,8 +11,7 @@ Stock Data Realtime is a Python script that allows you to fetch real-time and hi
 - Fetch near real-time and historical market data
 - Support for multiple timeframes (from 5 seconds to monthly)
 - Ability to search for symbols across different exchanges
-- Optional authentication for their paid data features
-- Pandas DataFrame output for easy data manipulation and analysis
+- Pandas DataFrame output
 
 ## Required Libraries
 This script relies on the following Python libraries
@@ -34,7 +33,7 @@ from stock_data import TvDatafeed, Interval
 tv = TvDatafeed()
 
 # Get historical data
-data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
+data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_daily,
                            n_bars=10)
 print(data) 
 
