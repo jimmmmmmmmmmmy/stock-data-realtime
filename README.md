@@ -36,7 +36,7 @@ tv = TvDatafeed()
 # Get historical data
 data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
                            n_bars=10)
-print(data) # or display(data)
+print(data) 
 
 # Returns: ["Date", "Time", "Open", "High", "Low", "Close", "Volume"]
 ```
@@ -58,19 +58,36 @@ data = tv.get_hist("MSFT", "NASDAQ", interval=Interval.in_1_hour, n_bars=500, ex
 
 ### Authenticated Access
 
-For extended data access, you can provide your TV session cookies. We use this instead of username and password authentication for a seemless data retrieval.
+For extended data access, you can provide your TV session cookies. You can also use your username and password, but it won't be as for seemless data retrieval and you may run into captcha issues.
 
 ```python
 tv = TvDatafeed(
     sessionid="your_session_id",
     sessionid_sign="your_session_id_sign"
+    
 )
 
 data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_5_seconds,
                            n_bars=10)
 
-# print(data) or display(data)
+print(data) 
 ```
+
+### config.json
+
+Locally you'll need to create a file called config.json and in it store either your sessionid & sessionid_sign or username & password:
+
+```
+{
+    "username": "your username here", 
+    "password": "your password here",
+    "sessionid": "your sessionid here",
+    "sessionid_sign": "your sessionid_sign here"
+}
+
+```
+
+Both username and password are the same login used for the main site while sessionid and sessionid need to be retrieved separately.
 
 #### How to obtain your sessionid and sessionid_sign
 

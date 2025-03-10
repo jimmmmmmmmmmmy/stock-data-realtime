@@ -6,6 +6,7 @@ import random
 import re
 import string
 import os
+import time
 from typing import Optional
 
 import pandas as pd
@@ -14,8 +15,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-
 class Interval(enum.Enum):
+    in_5_seconds = "5S"
     in_1_minute = "1"
     in_3_minute = "3"
     in_5_minute = "5"
@@ -30,7 +31,6 @@ class Interval(enum.Enum):
     in_weekly = "1W"
     in_monthly = "1M"
 
-
 class TvDatafeed:
     __sign_in_url = "https://www.tradingview.com/accounts/signin/"
     __search_url = "https://symbol-search.tradingview.com/symbol_search/?text={}&hl=1&exchange={}&lang=en&type=&domain=production"
@@ -39,10 +39,17 @@ class TvDatafeed:
     __ws_timeout = 5
     __token_file = "tv_token.json"
 
-    def __init__(self, username: Optional[str] = None,
-                 password: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        sessionid: Optional[str] = None,
+        sessionid_sign: Optional[str] = None
+    ) -> None:
         self.username = username
         self.password = password
+        self.sessionid = sessionid
+        self.sessionid_sign = sessionid_sign
         self.ws_debug = False
         self.token = self.__load_token()
         if not self.token:
@@ -52,13 +59,50 @@ class TvDatafeed:
         self.chart_session = self.__generate_chart_session()
 
     def __auth(self):
-        if self.username is None or self.password is None:
-            logger.warning(
-                "No credentials provided. Using unauthorized access.")
+        # Check if we have session cookies
+        if self.sessionid and self.sessionid_sign:
+            return self.__auth_with_session()
+        # Fall back to username/password
+        elif self.username and self.password:
+            return self.__auth_with_credentials()
+        else:
+            logger.warning("No valid credentials or session cookies provided. Using unauthorized access.")
             return "unauthorized_user_token"
 
-        data = {"username": self.username, "password": self.password,
-                "remember": "on"}
+    def __auth_with_session(self):
+        headers = {
+            "Referer": "https://www.tradingview.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Cookie": f"sessionid={self.sessionid}; sessionid_sign={self.sessionid_sign}"
+        }
+
+        try:
+            response = requests.get("https://www.tradingview.com/chart/", headers=headers, allow_redirects=False)
+            if response.status_code == 302:
+                redirect_url = response.headers.get('Location')
+                response = requests.get(f"https://www.tradingview.com{redirect_url}", headers=headers)
+            response.raise_for_status()
+
+            match = re.search(r'"auth_token":"([^"]+)"', response.text)
+            if match:
+                token = match.group(1)
+                self.__save_token(token)
+                logger.info("Authentication successful with session cookies.")
+                return token
+            else:
+                logger.error("Failed to extract auth token from response.")
+                return "unauthorized_user_token"
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error during session authentication: {e}")
+            return "unauthorized_user_token"
+
+    def __auth_with_credentials(self):
+        data = {
+            "username": self.username,
+            "password": self.password,
+            "remember": "on"
+        }
         try:
             response = requests.post(
                 url=self.__sign_in_url,
@@ -67,42 +111,28 @@ class TvDatafeed:
             )
             response.raise_for_status()
 
-            logger.debug(
-                f"Authentication response status code: {response.status_code}")
-            logger.debug(f"Authentication response headers: {response.headers}")
-            logger.debug(f"Authentication response content: {response.text}")
-
             try:
                 json_response = response.json()
-                logger.debug(
-                    f"Parsed JSON response: {json.dumps(json_response, indent=2)}")
-
-                if 'user' in json_response and 'auth_token' in json_response[
-                    'user']:
+                if 'user' in json_response and 'auth_token' in json_response['user']:
                     token = json_response['user']['auth_token']
                     self.__save_token(token)
-                    logger.info("Authentication successful.")
+                    logger.info("Authentication successful with credentials.")
                     return token
                 else:
-                    logger.error(
-                        "Unexpected response format during authentication.")
-                    logger.error(
-                        f"Response does not contain expected 'user' and 'auth_token' fields.")
+                    logger.error("Unexpected response format during authentication.")
                     return "unauthorized_user_token"
             except json.JSONDecodeError:
                 logger.error("Failed to parse authentication response as JSON.")
-                logger.error(f"Raw response content: {response.text}")
                 return "unauthorized_user_token"
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error during authentication request: {e}")
+            logger.error(f"Error during credentials authentication: {e}")
             return "unauthorized_user_token"
 
     def __save_token(self, token):
         data = {
             "token": token,
-            "expiry": (datetime.datetime.now() + datetime.timedelta(
-                days=30)).isoformat()
+            "expiry": (datetime.datetime.now() + datetime.timedelta(days=30)).isoformat()
         }
         with open(self.__token_file, 'w') as f:
             json.dump(data, f)
@@ -125,12 +155,21 @@ class TvDatafeed:
             return None
 
     def __create_connection(self):
-        logging.debug("Creating websocket connection")
-        self.ws = create_connection(
-            "wss://data.tradingview.com/socket.io/websocket",
-            headers=self.__ws_headers,
-            timeout=self.__ws_timeout,
-        )
+        for attempt in range(3):
+            try:
+                logging.debug(f"Creating websocket connection (attempt {attempt + 1})")
+                self.ws = create_connection(
+                    "wss://data.tradingview.com/socket.io/websocket",
+                    headers=self.__ws_headers,
+                    timeout=self.__ws_timeout,
+                )
+                logger.debug("WebSocket connection established successfully")
+                return
+            except Exception as e:
+                logger.error(f"Failed to establish WebSocket connection: {e}")
+                if attempt < 2:
+                    time.sleep(2)
+        raise ConnectionError("Failed to establish WebSocket connection after 3 attempts")
 
     @staticmethod
     def __filter_raw_message(text):
@@ -333,16 +372,41 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    # Load credentials from config file
+    with open("config.json", "r") as f:
+                config = json.load(f)
+
+    # Example with session cookies
+    tv_session = TvDatafeed(
+        sessionid=config['sessionid'],
+        sessionid_sign=config['sessionid_sign']
+    )
+    
+    # Example with username/password
+    tv_credentials = TvDatafeed(
+        username=config["username"],
+        password=["password"]
+    )
+
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
-        username_tv = config["username"]
-        password_tv = config["password"]
-    except FileNotFoundError:
-        logger.error("config.json not found. Please create it with username & password")
-        exit(1)
-    tv = TvDatafeed(username=username_tv, password=password_tv)
-    data = tv.get_hist("NQ1!", "CME_MINI", interval=Interval.in_1_minute,
-                       n_bars=1)
-    print(data.iloc[-1]['Close'])
+        # Using session-based authentication
+        data = tv_session.get_hist(
+            "NQ1!", 
+            "CME_MINI", 
+            interval=Interval.in_5_seconds,
+            n_bars=10
+        )
+        print("Session-based data:")
+        print(data)
+
+        # Using credentials-based authentication
+        data = tv_credentials.get_hist(
+            "NQ1!", 
+            "CME_MINI", 
+            interval=Interval.in_5_seconds,
+            n_bars=10
+        )
+        print("Credentials-based data:")
+        print(data)
+
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
