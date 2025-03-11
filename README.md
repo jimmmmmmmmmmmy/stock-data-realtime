@@ -1,6 +1,6 @@
 # Stock Data Realtime
 
-Stock Data Realtime is a Python script that allows you to fetch real-time and historical market data from
+A way to scrape data from TradingView since they don't provide an official API and I'm already paying for market data from the CME, NYSE, and Nasdaq exchange
 <p align="center">
   <img src="https://github.com/jimmmmmmmmmmmy/stock-data-realtime/assets/143036559/34367166-8c5a-4519-b8ca-35b872d80635" alt="Stock Data Realtime" width="300"/>
 </p>
