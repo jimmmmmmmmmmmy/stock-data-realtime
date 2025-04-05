@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, mock_open
 import pandas as pd
 import json
 import datetime
-from stock_data import TvDatafeed, Interval
+from src.stock_data_realtime.stock_data import TvDatafeed, Interval
 
 class TestTvDatafeed(unittest.TestCase):
     def setUp(self):
