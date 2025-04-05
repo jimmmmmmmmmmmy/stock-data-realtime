@@ -3,6 +3,7 @@ name = "stock-data-realtime"
 version = "0.1.0"
 description = "Stock data scraper"
 authors = ["jimmmmmmmmmmmy"]
+packages = [{include = "stock_data_realtime", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.13"
