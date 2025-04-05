@@ -19,7 +19,7 @@ This script relies on the following Python libraries
 
 ## Installation
 - **Poetry**: Run `poetry install` to install the package and dependencies
-- 
+  
 - **Pip**: Run `pip install .` to install the package and dependencies via `pyproject.toml`.
 
 ## Usage
