@@ -16,6 +16,12 @@ This script relies on the following Python libraries
 - websocket-client: For WebSocket connections
 - requests: For making HTTP requests
 
+
+## Installation
+- **Poetry**: Run `poetry install` to install the package and dependencies
+- 
+- **Pip**: Run `pip install .` to install the package and dependencies via `pyproject.toml`.
+
 ## Usage
 
 The main script is `stock_data.py`. Here are some examples of how to use it:
