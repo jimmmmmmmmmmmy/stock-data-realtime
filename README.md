@@ -23,7 +23,7 @@ The main script is `stock_data.py`. Here are some examples of how to use it:
 ### Basic Usage
 
 ```python
-from stock_data import TvDatafeed, Interval
+from stock_data_realtime import TvDatafeed, Interval
 
 # Initialize the TvDatafeed (unauthorized access)
 tv = TvDatafeed()
