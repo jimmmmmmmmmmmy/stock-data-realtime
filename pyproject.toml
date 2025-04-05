@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "stock-data-realtime"
+version = "0.1.0"
+description = "Stock data scraper"
+authors = ["jimmmmmmmmmmmy"]
+
+[tool.poetry.dependencies]
+python = ">=3.13"
+pandas = "*"
+websocket-client = "*"
+requests = "*"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
